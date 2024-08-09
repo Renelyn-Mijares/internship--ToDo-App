@@ -12,11 +12,9 @@ const App = () => {
 
   const [newTodo, setNewTodo] = useState('');
   const [newDueDate, setNewDueDate] = useState(new Date());
-  const [newDueTime, setNewDueTime] = useState({ hour: '', minute: '', period: 'AM' });
   const [editingIndex, setEditingIndex] = useState(-1);
   const [editingText, setEditingText] = useState('');
   const [editingDueDate, setEditingDueDate] = useState(new Date());
-  const [editingDueTime, setEditingDueTime] = useState({ hour: '', minute: '', period: 'AM' });
   const [filter, setFilter] = useState('all');
   const [confirmDialog, setConfirmDialog] = useState({ visible: false, action: null, index: null });
 
@@ -27,13 +25,6 @@ const App = () => {
   const addTodo = () => {
     if (newTodo.trim()) {
       const dueDateTime = new Date(newDueDate);
-      const hours = parseInt(newDueTime.hour, 10) || 0;
-      const minutes = parseInt(newDueTime.minute, 10) || 0;
-      const adjustedHours = newDueTime.period === 'PM' && hours !== 12 ? hours + 12 : hours % 12;
-
-      dueDateTime.setHours(adjustedHours);
-      dueDateTime.setMinutes(minutes);
-
       setTodos([
         ...todos,
         {
@@ -45,42 +36,28 @@ const App = () => {
       ]);
       setNewTodo('');
       setNewDueDate(new Date());
-      setNewDueTime({ hour: '', minute: '', period: 'AM' });
     }
   };
 
   const editTodo = (index) => {
     setEditingIndex(index);
     setEditingText(todos[index].text);
-    const dueDate = new Date(todos[index].dueDate);
-    const hours = dueDate.getHours();
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const adjustedHours = hours % 12 === 0 ? 12 : hours % 12;
-    const minutes = dueDate.getMinutes();
-
-    setEditingDueDate(dueDate);
-    setEditingDueTime({ hour: adjustedHours.toString(), minute: minutes.toString().padStart(2, '0'), period });
+    setEditingDueDate(new Date(todos[index].dueDate));
   };
 
   const updateTodo = (index) => {
-    const dueDateTime = new Date(editingDueDate);
-    const hours = parseInt(editingDueTime.hour, 10) || 0;
-    const minutes = parseInt(editingDueTime.minute, 10) || 0;
-    const adjustedHours = editingDueTime.period === 'PM' && hours !== 12 ? hours + 12 : hours % 12;
-
-    dueDateTime.setHours(adjustedHours);
-    dueDateTime.setMinutes(minutes);
-
-    const updatedTodos = todos.map((todo, i) =>
-      i === index
-        ? { ...todo, text: editingText.substring(0, 60), dueDate: dueDateTime.toLocaleString() }
-        : todo
-    );
-    setTodos(updatedTodos);
-    setEditingIndex(-1);
-    setEditingText('');
-    setEditingDueDate(new Date());
-    setEditingDueTime({ hour: '', minute: '', period: 'AM' });
+    if (editingText.trim()) {
+      const dueDateTime = new Date(editingDueDate);
+      const updatedTodos = todos.map((todo, i) =>
+        i === index
+          ? { ...todo, text: editingText.substring(0, 60), dueDate: dueDateTime.toLocaleString() }
+          : todo
+      );
+      setTodos(updatedTodos);
+      setEditingIndex(-1);
+      setEditingText('');
+      setEditingDueDate(new Date());
+    }
   };
 
   const toggleTodoStatus = (index) => {
@@ -135,26 +112,6 @@ const App = () => {
     return true;
   });
 
-  const handleTimeChange = (event, field) => {
-    const { value } = event.target;
-    if (field === 'hour' || field === 'minute') {
-      const sanitizedValue = value.replace(/[^0-9]/g, '');
-      setNewDueTime({ ...newDueTime, [field]: sanitizedValue });
-    } else {
-      setNewDueTime({ ...newDueTime, [field]: value });
-    }
-  };
-
-  const handleEditTimeChange = (event, field) => {
-    const { value } = event.target;
-    if (field === 'hour' || field === 'minute') {
-      const sanitizedValue = value.replace(/[^0-9]/g, '');
-      setEditingDueTime({ ...editingDueTime, [field]: sanitizedValue });
-    } else {
-      setEditingDueTime({ ...editingDueTime, [field]: value });
-    }
-  };
-
   return (
     <div className="App">
       <aside className="sidebar">
@@ -179,29 +136,12 @@ const App = () => {
               selected={newDueDate}
               onChange={(date) => setNewDueDate(date)}
               dateFormat="MM/dd/yyyy"
-              customInput={<input type="text" placeholder="Select the due date" />}
+              showTimeSelect
+              timeIntervals={10}
+              timeFormat="HH:mm"
+              customInput={<input type="text" placeholder="Select the due date and time" />}
+              timeCaption="Time"
             />
-            <div className="time-input">
-              <input
-                type="text"
-                value={newDueTime.hour}
-                onChange={(e) => handleTimeChange(e, 'hour')}
-                placeholder="Enter the Hour (HH)"
-                maxLength={2}
-              />
-              :
-              <input
-                type="text"
-                value={newDueTime.minute}
-                onChange={(e) => handleTimeChange(e, 'minute')}
-                placeholder="Enter the Minutes (MM)"
-                maxLength={2}
-              />
-              <select value={newDueTime.period} onChange={(e) => handleTimeChange(e, 'period')}>
-                <option value="AM">AM</option>
-                <option value="PM">PM</option>
-              </select>
-            </div>
             <button onClick={addTodo}>Add</button>
           </div>
           <div className="action-buttons">
@@ -224,29 +164,12 @@ const App = () => {
                     selected={editingDueDate}
                     onChange={(date) => setEditingDueDate(date)}
                     dateFormat="MM/dd/yyyy"
-                    customInput={<input type="text" placeholder="Select the due date" />}
+                    showTimeSelect
+                    timeIntervals={10}
+                    timeFormat="HH:mm"
+                    customInput={<input type="text" placeholder="Select the due date and time" />}
+                    timeCaption="Time"
                   />
-                  <div className="time-input">
-                    <input
-                      type="text"
-                      value={editingDueTime.hour}
-                      onChange={(e) => handleEditTimeChange(e, 'hour')}
-                      placeholder="Enter the Hour (HH)"
-                      maxLength={2}
-                    />
-                    :
-                    <input
-                      type="text"
-                      value={editingDueTime.minute}
-                      onChange={(e) => handleEditTimeChange(e, 'minute')}
-                      placeholder="Enter the Minutes (MM)"
-                      maxLength={2}
-                    />
-                    <select value={editingDueTime.period} onChange={(e) => handleEditTimeChange(e, 'period')}>
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                  </div>
                   <button onClick={() => updateTodo(index)}>Update</button>
                 </>
               ) : (
